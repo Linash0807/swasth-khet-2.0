@@ -1,0 +1,18 @@
+# Ignore node modules and build directories
+node_modules/
+dist/
+build/
+
+# Ignore logs
+*.log
+
+# Ignore OS or IDE files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.env
+
+# Ignore all .txt files except readme.txt
+*.txt
+!readme.txt

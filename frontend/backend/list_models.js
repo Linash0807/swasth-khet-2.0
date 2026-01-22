@@ -1,0 +1,1 @@
+﻿const { GoogleGenerativeAI } = require("@google/generative-ai"); const dotenv = require("dotenv"); dotenv.config(); const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY); console.log("Keys on genAI:", Object.keys(genAI)); console.log("Prototype keys:", Object.keys(Object.getPrototypeOf(genAI)));
