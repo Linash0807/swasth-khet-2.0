@@ -11,7 +11,13 @@ build/
 Thumbs.db
 .idea/
 .vscode/
+# Environment files
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*
 
 # Ignore all .txt files except readme.txt
 *.txt
