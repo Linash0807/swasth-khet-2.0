@@ -92,15 +92,29 @@ app.get('/api/health', (req, res) => {
 
 // Serve static files from the React frontend app
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../frontend/dist')));
+  const staticPath = path.join(__dirname, '../frontend/dist');
+  console.log('Production mode detected. Serving static files from:', staticPath);
+
+  app.use(express.static(staticPath));
 
   app.get('*', (req, res) => {
     // If it's an API route that reached here, it's a true API 404
     if (req.path.startsWith('/api')) {
       return res.status(404).json({ success: false, message: 'API route not found' });
     }
+
     // Otherwise serve the React app
-    res.sendFile(path.resolve(__dirname, '../frontend', 'dist', 'index.html'));
+    const indexPath = path.resolve(__dirname, '../frontend', 'dist', 'index.html');
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      console.error('index.html not found at:', indexPath);
+      res.status(404).json({
+        success: false,
+        message: 'Frontend build not found. Please ensure build command ran successfully.',
+        path: indexPath
+      });
+    }
   });
 } else {
   // Root route for status check in development
