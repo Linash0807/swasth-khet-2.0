@@ -70,6 +70,16 @@ app.use('/api/carbon', carbonRoutes);
 app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/contact', contactRoutes);
 
+// Root route for status check
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Welcome to Swasth Khet API',
+    status: 'Running',
+    version: '1.0.0'
+  });
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Swasth Khet API is running' });
@@ -96,3 +106,4 @@ app.listen(PORT, () => {
 });
 
 module.exports = app;
+
