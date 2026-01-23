@@ -92,45 +92,40 @@ app.get('/api/health', (req, res) => {
 });
 
 // Serve static files from the React frontend app
-if (process.env.NODE_ENV === 'production') {
-  const staticPath = path.join(__dirname, '../frontend/dist');
-  console.log('Production mode detected. Serving static files from:', staticPath);
+const staticPath = path.join(__dirname, '../frontend/dist');
+app.use(express.static(staticPath));
 
-  app.use(express.static(staticPath));
+app.get('*', (req, res, next) => {
+  // If it's an API route that reached here, it's a true API 404
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
 
-  app.get('*', (req, res) => {
-    // If it's an API route that reached here, it's a true API 404
-    if (req.path.startsWith('/api')) {
-      return res.status(404).json({ success: false, message: 'API route not found' });
-    }
-
-    // Otherwise serve the React app
-    const indexPath = path.resolve(__dirname, '../frontend', 'dist', 'index.html');
-    if (fs.existsSync(indexPath)) {
-      res.sendFile(indexPath);
-    } else {
-      console.error('index.html not found at:', indexPath);
-      res.status(404).json({
-        success: false,
-        message: 'Frontend build not found. Please ensure build command ran successfully.',
-        path: indexPath
-      });
-    }
-  });
-} else {
-  // Root route for status check in development
-  app.get('/', (req, res) => {
+  // Otherwise serve the React app
+  const indexPath = path.join(staticPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else if (req.path === '/') {
     res.json({
       success: true,
-      message: 'Welcome to Swasth Khet API (Development)',
-      status: 'Running'
+      message: 'Welcome to Swasth Khet API',
+      status: `Running (${process.env.NODE_ENV || 'development'})`,
+      hasBuild: fs.existsSync(staticPath)
     });
-  });
-}
+  } else {
+    next();
+  }
+});
 
-// Global 404 handler for any other stray requests
-app.use('*', (req, res) => {
-  res.status(404).json({ success: false, message: 'Route not found' });
+// Global 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Route not found',
+    path: req.originalUrl,
+    mode: process.env.NODE_ENV,
+    hasStatic: fs.existsSync(path.join(__dirname, '../frontend/dist'))
+  });
 });
 
 // Error handling middleware
