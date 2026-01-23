@@ -30,6 +30,7 @@ const generateToken = (id) => {
 // @route   POST /api/auth/register
 // @access  Public
 router.post('/register', async (req, res) => {
+  console.log(`[Auth] Register request for: ${req.body?.email}`);
   try {
     // Validate input
     const { error } = registerSchema.validate(req.body);
@@ -82,6 +83,7 @@ router.post('/register', async (req, res) => {
 // @route   POST /api/auth/login
 // @access  Public
 router.post('/login', async (req, res) => {
+  console.log(`[Auth] Login request for: ${req.body?.email}`);
   try {
     // Validate input
     const { error } = loginSchema.validate(req.body);
