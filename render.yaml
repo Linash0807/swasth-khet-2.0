@@ -20,4 +20,4 @@ services:
     rootDir: frontend
     envVars:
       - key: VITE_API_URL
-        value: https://swasth-khet-backend.onrender.com/api
+        value: "" # Set to empty to allow relative fallback to /api

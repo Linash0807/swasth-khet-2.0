@@ -22,7 +22,9 @@ class ApiClient {
       },
     };
 
-    const response = await fetch(`${this.baseURL}${endpoint}`, config);
+    const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    const url = `${this.baseURL.replace(/\/$/, '')}${path}`;
+    const response = await fetch(url, config);
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ message: 'An error occurred' }));
