@@ -19,5 +19,5 @@ services:
     staticPublishDir: dist
     rootDir: frontend
     envVars:
-      - key: VITE_API_BASE_URL
+      - key: VITE_API_URL
         value: https://swasth-khet-backend.onrender.com/api
