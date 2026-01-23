@@ -70,15 +70,27 @@ app.use('/api/carbon', carbonRoutes);
 app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/contact', contactRoutes);
 
-// Root route for status check
-app.get('/', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Welcome to Swasth Khet API',
-    status: 'Running',
-    version: '1.0.0'
+// Serve static files from the React frontend app
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
+    res.sendFile(path.resolve(__dirname, '../frontend', 'dist', 'index.html'));
   });
-});
+} else {
+  // Root route for status check
+  app.get('/', (req, res) => {
+    res.json({
+      success: true,
+      message: 'Welcome to Swasth Khet API',
+      status: 'Running',
+      version: '1.0.0'
+    });
+  });
+}
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
