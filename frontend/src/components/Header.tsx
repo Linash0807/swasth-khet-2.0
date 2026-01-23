@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 
 export const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const location = useLocation();
   const isLandingPage = location.pathname === "/";
 
@@ -70,8 +70,8 @@ export const Header = () => {
               <Link to="/register">Register</Link>
             </Button>
           ) : user ? (
-            <Button variant="hero" size="default" asChild>
-              <Link to="/dashboard">Dashboard</Link>
+            <Button variant="hero" size="default" onClick={() => logout()}>
+              Logout
             </Button>
           ) : (
             <Button variant="hero" size="default" asChild>
@@ -128,13 +128,15 @@ export const Header = () => {
                       </Link>
                     </>
                   ) : (
-                    <Link
-                      to="/dashboard"
-                      onClick={() => setIsOpen(false)}
-                      className="text-lg font-medium text-white transition-smooth"
+                    <button
+                      onClick={() => {
+                        logout();
+                        setIsOpen(false);
+                      }}
+                      className="text-left text-lg font-medium text-white transition-smooth"
                     >
-                      Dashboard
-                    </Link>
+                      Logout
+                    </button>
                   )}
                 </div>
               </nav>
