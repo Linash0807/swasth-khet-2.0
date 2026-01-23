@@ -28,8 +28,9 @@ class GeminiService {
     }
 
     const modelsToTry = [
+      'gemini-2.0-flash',
       'gemini-1.5-flash',
-      'gemini-1.5-pro'
+      'gemini-pro'
     ];
 
     let lastError = null;
@@ -121,12 +122,15 @@ If the image doesn't show a crop or plant, respond with:
   }
 
   async generateFarmingAdvice(query, language = 'english') {
+    console.log(`generateFarmingAdvice called. MOCK_GEMINI: ${process.env.ENABLE_MOCK_GEMINI}`);
     if (process.env.ENABLE_MOCK_GEMINI === 'true') {
+      console.log('Returning mock farming advice');
       return "This is a demo response for farming advice. Ensure proper irrigation and soil nutrition.";
     }
 
     try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      console.log('Fetching real Gemini advice...');
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
       const systemPrompt = `You are an expert agricultural advisor helping Indian farmers. Provide practical, actionable farming advice in ${language} language. Be concise and farmer-friendly. Avoid technical jargon.`;
 
@@ -153,7 +157,7 @@ If the image doesn't show a crop or plant, respond with:
     }
 
     try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
       const prompt = `As an agricultural AI, analyze this crop data and predict yield:
 ${JSON.stringify(cropData, null, 2)}
@@ -193,7 +197,7 @@ Provide a JSON response with:
     }
 
     try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
       const prompt = `As an agricultural disease forecasting AI, analyze this data and predict disease risks:
 Location: ${JSON.stringify(locationData)}

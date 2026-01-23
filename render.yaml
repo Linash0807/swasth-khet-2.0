@@ -1,0 +1,23 @@
+services:
+  # Backend Service
+  - type: web
+    name: swasth-khet-backend
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    rootDir: backend
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - fromGroup: swasth-khet-common
+
+  # Frontend Service (Static Site)
+  - type: static
+    name: swasth-khet-frontend
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishDir: dist
+    rootDir: frontend
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://swasth-khet-backend.onrender.com/api
