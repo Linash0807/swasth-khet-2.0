@@ -44,7 +44,8 @@ app.use(limiter);
 // CORS configuration
 // CORS configuration - Allow production origin and localhost
 const allowedOrigins = [
-  process.env.FRONTEND_URL,
+  'https://swasth-khet-2-0.onrender.com',
+  'https://swasth-khet-2-0-1.onrender.com',
   'http://localhost:3000',
   'http://localhost:8080',
   'http://localhost:5173'

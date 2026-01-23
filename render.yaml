@@ -19,5 +19,3 @@ services:
     staticPublishDir: dist
     rootDir: frontend
     envVars:
-      - key: VITE_API_URL
-        value: "" # Set to empty to allow relative fallback to /api
