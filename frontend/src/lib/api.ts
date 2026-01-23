@@ -24,14 +24,35 @@ class ApiClient {
 
     const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
     const url = `${this.baseURL.replace(/\/$/, '')}${path}`;
+
+    console.log(`[API] Fetching: ${url}`);
     const response = await fetch(url, config);
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'An error occurred' }));
-      throw new Error(error.message || 'Request failed');
+    let data: any;
+    const contentType = response.headers.get('content-type');
+
+    if (contentType && contentType.includes('application/json')) {
+      const text = await response.text();
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (e) {
+        console.error(`[API] JSON parse error for ${url}:`, e);
+        throw new Error(`Invalid JSON response from server at ${url}`);
+      }
+    } else {
+      // Not JSON, maybe empty or HTML error
+      const text = await response.text();
+      if (!response.ok) {
+        throw new Error(text || `Request failed with status ${response.status}`);
+      }
+      data = text as any;
     }
 
-    return response.json();
+    if (!response.ok) {
+      throw new Error(data?.message || `Request failed with status ${response.status}`);
+    }
+
+    return data as T;
   }
 
   async get<T>(endpoint: string): Promise<T> {
