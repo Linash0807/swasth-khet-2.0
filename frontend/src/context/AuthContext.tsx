@@ -35,15 +35,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const response = await authAPI.getMe();
             // Handle both { success: true, data: user } and { success: true, user }
             setUser(response.data || (response as any).user || response);
+            console.log("[AuthContext] User loaded from token:", (response.data || (response as any).user || response).email);
           } catch (error) {
-            console.log('Backend not available or token invalid');
+            console.log('[AuthContext] Backend not available or token invalid, clearing token.');
             localStorage.removeItem('token');
             setToken(null);
             setUser(null);
           }
+        } else {
+          console.log("[AuthContext] No token found in localStorage.");
         }
       } catch (error) {
-        console.error('Error during auth initialization:', error);
+        console.error('[AuthContext] Error during auth initialization:', error);
       } finally {
         setLoading(false);
       }
@@ -60,10 +63,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const authData = response.data || response;
       const { user, token } = authData as any;
 
+      console.log("[AuthContext] Login success:", user.email);
       setUser(user);
       setToken(token);
       localStorage.setItem('token', token);
-    } catch (error) {
+    } catch (error: any) {
+      console.error("[AuthContext] Login error:", error.message);
       throw error;
     } finally {
       setLoading(false);
@@ -78,10 +83,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const authData = response.data || response;
       const { user, token } = authData as any;
 
+      console.log("[AuthContext] Register success:", user.email);
       setUser(user);
       setToken(token);
       localStorage.setItem('token', token);
-    } catch (error) {
+    } catch (error: any) {
+      console.error("[AuthContext] Register error:", error.message);
       throw error;
     } finally {
       setLoading(false);
