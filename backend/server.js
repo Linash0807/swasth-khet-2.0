@@ -102,6 +102,9 @@ app.get('/api/health', (req, res) => {
 
 // Serve static files from the React frontend app
 const staticPath = path.join(__dirname, '../frontend/dist');
+console.log(`[SERVE] Looking for static files in: ${staticPath}`);
+console.log(`[SERVE] staticPath exists: ${fs.existsSync(staticPath)}`);
+
 app.use(express.static(staticPath));
 
 app.get('*', (req, res, next) => {
@@ -112,6 +115,8 @@ app.get('*', (req, res, next) => {
 
   // Otherwise serve the React app
   const indexPath = path.join(staticPath, 'index.html');
+  console.log(`[SERVE] Requested: ${req.path}, checking for: ${indexPath}`);
+
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
   } else if (req.path === '/') {
@@ -119,7 +124,9 @@ app.get('*', (req, res, next) => {
       success: true,
       message: 'Welcome to Swasth Khet API',
       status: `Running (${process.env.NODE_ENV || 'development'})`,
-      hasBuild: fs.existsSync(staticPath)
+      hasBuild: fs.existsSync(staticPath),
+      checkedPath: staticPath,
+      dirName: __dirname
     });
   } else {
     next();

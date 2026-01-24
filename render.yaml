@@ -3,9 +3,8 @@ services:
   - type: web
     name: swasth-khet
     runtime: node
-    buildCommand: npm run build:full
-    startCommand: npm start
-    rootDir: backend
+    buildCommand: cd frontend && npm install && npm run build && cd ../backend && npm install
+    startCommand: cd backend && npm start
     envVars:
       - key: NODE_ENV
         value: production
