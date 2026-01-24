@@ -33,20 +33,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setToken(storedToken);
           try {
             const response = await authAPI.getMe();
-            // Handle both { success: true, data: user } and { success: true, user }
-            setUser(response.data || (response as any).user || response);
-            console.log("[AuthContext] User loaded from token:", (response.data || (response as any).user || response).email);
+            console.log("[AuthContext] Load user response:", response);
+
+            // Extracts user object robustly
+            const userData = (response.data || (response as any).user || response) as any;
+
+            if (userData && userData.email) {
+              setUser(userData);
+              console.log("[AuthContext] Profile loaded:", userData.email);
+            } else {
+              throw new Error("Invalid user data in response");
+            }
           } catch (error) {
-            console.log('[AuthContext] Backend not available or token invalid, clearing token.');
+            console.log('[AuthContext] Session invalid or server error:', error);
             localStorage.removeItem('token');
             setToken(null);
             setUser(null);
           }
-        } else {
-          console.log("[AuthContext] No token found in localStorage.");
         }
       } catch (error) {
-        console.error('[AuthContext] Error during auth initialization:', error);
+        console.error('[AuthContext] Init error:', error);
       } finally {
         setLoading(false);
       }
@@ -58,15 +64,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
+      console.log("[AuthContext] Attempting login for:", email);
       const response = await authAPI.login({ email, password });
-      // Handle both { success: true, data: { user, token } } and { success: true, user, token }
-      const authData = response.data || response;
-      const { user, token } = authData as any;
+      console.log("[AuthContext] Raw login response:", response);
 
-      console.log("[AuthContext] Login success:", user.email);
-      setUser(user);
-      setToken(token);
-      localStorage.setItem('token', token);
+      // Handle various response formats: 
+      // 1. { data: { user, token } }
+      // 2. { user, token }
+      // 3. { success: true, user, token }
+      const data = (response.data || response) as any;
+      const userData = data.user || (data.email ? data : null);
+      const userToken = data.token || (response as any).token;
+
+      if (!userData || !userToken) {
+        console.error("[AuthContext] Incomplete response:", { userData: !!userData, userToken: !!userToken });
+        throw new Error("Invalid response from server");
+      }
+
+      console.log("[AuthContext] Login successful for:", userData.email);
+      setUser(userData);
+      setToken(userToken);
+      localStorage.setItem('token', userToken);
     } catch (error: any) {
       console.error("[AuthContext] Login error:", error.message);
       throw error;
@@ -78,15 +96,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (name: string, email: string, password: string) => {
     try {
       setLoading(true);
+      console.log("[AuthContext] Attempting registration for:", email);
       const response = await authAPI.register({ name, email, password });
-      // Handle both { success: true, data: { user, token } } and { success: true, user, token }
-      const authData = response.data || response;
-      const { user, token } = authData as any;
+      console.log("[AuthContext] Raw register response:", response);
 
-      console.log("[AuthContext] Register success:", user.email);
-      setUser(user);
-      setToken(token);
-      localStorage.setItem('token', token);
+      const data = (response.data || response) as any;
+      const userData = data.user || (data.email ? data : null);
+      const userToken = data.token || (response as any).token;
+
+      if (!userData || !userToken) {
+        throw new Error("Invalid response from server");
+      }
+
+      console.log("[AuthContext] Registration successful for:", userData.email);
+      setUser(userData);
+      setToken(userToken);
+      localStorage.setItem('token', userToken);
     } catch (error: any) {
       console.error("[AuthContext] Register error:", error.message);
       throw error;
@@ -124,4 +149,3 @@ export function useAuth() {
   }
   return context;
 }
-
