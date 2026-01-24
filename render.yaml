@@ -1,21 +1,12 @@
 services:
-  # Backend Service
+  # Swasth Khet - Unified Web Service
   - type: web
-    name: swasth-khet-backend
+    name: swasth-khet
     runtime: node
-    buildCommand: cd ../frontend && npm install && npm run build && cd ../backend && npm install
+    buildCommand: npm run build:full
     startCommand: npm start
     rootDir: backend
     envVars:
       - key: NODE_ENV
         value: production
       - fromGroup: swasth-khet-common
-
-  # Frontend Service (Static Site)
-  - type: static
-    name: swasth-khet-frontend
-    runtime: static
-    buildCommand: npm install && npm run build
-    staticPublishDir: dist
-    rootDir: frontend
-    envVars:

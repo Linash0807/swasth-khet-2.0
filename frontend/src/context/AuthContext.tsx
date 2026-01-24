@@ -54,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
+      setLoading(true);
       const response = await authAPI.login({ email, password });
       // Handle both { success: true, data: { user, token } } and { success: true, user, token }
       const authData = response.data || response;
@@ -64,11 +65,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('token', token);
     } catch (error) {
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
   const register = async (name: string, email: string, password: string) => {
     try {
+      setLoading(true);
       const response = await authAPI.register({ name, email, password });
       // Handle both { success: true, data: { user, token } } and { success: true, user, token }
       const authData = response.data || response;
@@ -79,6 +83,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('token', token);
     } catch (error) {
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
