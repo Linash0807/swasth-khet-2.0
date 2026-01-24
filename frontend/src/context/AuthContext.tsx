@@ -103,7 +103,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { user: userData, token: userToken } = extractAuthData(response);
 
       if (!userData || !userToken) {
-        console.error("[AuthContext] Extraction failed. Response keys:", Object.keys(response || {}));
+        console.error("[AuthContext] Extraction failed. Response structure:", {
+          keys: Object.keys(response || {}),
+          hasData: !!response?.data,
+          dataType: typeof response,
+          isString: typeof response === 'string'
+        });
         throw new Error("Invalid response from server");
       }
 

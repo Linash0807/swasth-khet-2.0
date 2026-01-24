@@ -83,7 +83,7 @@ router.post('/register', async (req, res) => {
 // @route   POST /api/auth/login
 // @access  Public
 router.post('/login', async (req, res) => {
-  console.log(`[Auth] Login request for: ${req.body?.email}`);
+  console.log(`[API_HIT] /api/auth/login hit at ${new Date().toISOString()} for email: ${req.body?.email}`);
   try {
     // Validate input
     const { error } = loginSchema.validate(req.body);

@@ -30,9 +30,11 @@ class ApiClient {
     console.log(`[API] Fetching: ${url}`);
     const response = await fetch(url, config);
 
-    let data: any;
+    console.log(`[API] Response from ${url}: Status ${response.status} ${response.statusText}`);
     const contentType = response.headers.get('content-type');
+    console.log(`[API] Content-Type: ${contentType}`);
 
+    let data: any;
     if (contentType && contentType.includes('application/json')) {
       const text = await response.text();
       try {
@@ -44,6 +46,7 @@ class ApiClient {
     } else {
       // Not JSON, maybe empty or HTML error
       const text = await response.text();
+      console.log(`[API] Non-JSON response body (first 100 chars): ${text.substring(0, 100)}`);
       if (!response.ok) {
         throw new Error(text || `Request failed with status ${response.status}`);
       }
