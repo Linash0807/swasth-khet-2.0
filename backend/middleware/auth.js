@@ -20,10 +20,13 @@ const protect = async (req, res, next) => {
 
     try {
       // Verify token
+      console.log('Verifying token...');
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log('Token decoded successfully, user ID:', decoded.id);
 
       // Get user from token
       const user = await User.findById(decoded.id).select('-password');
+      console.log('User lookup result:', user ? `Found user: ${user.name}` : 'No user found');
 
       if (!user) {
         return res.status(401).json({

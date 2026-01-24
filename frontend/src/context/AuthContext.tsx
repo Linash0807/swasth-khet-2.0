@@ -33,7 +33,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setToken(storedToken);
           try {
             const response = await authAPI.getMe();
-            setUser(response.data);
+            // Handle both { success: true, data: user } and { success: true, user }
+            setUser(response.data || (response as any).user || response);
           } catch (error) {
             console.log('Backend not available or token invalid');
             localStorage.removeItem('token');
@@ -47,15 +48,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       }
     };
-    
+
     loadUser();
   }, []);
 
   const login = async (email: string, password: string) => {
     try {
       const response = await authAPI.login({ email, password });
-      const { user, token } = response.data;
-      
+      // Handle both { success: true, data: { user, token } } and { success: true, user, token }
+      const authData = response.data || response;
+      const { user, token } = authData as any;
+
       setUser(user);
       setToken(token);
       localStorage.setItem('token', token);
@@ -67,8 +70,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (name: string, email: string, password: string) => {
     try {
       const response = await authAPI.register({ name, email, password });
-      const { user, token } = response.data;
-      
+      // Handle both { success: true, data: { user, token } } and { success: true, user, token }
+      const authData = response.data || response;
+      const { user, token } = authData as any;
+
       setUser(user);
       setToken(token);
       localStorage.setItem('token', token);

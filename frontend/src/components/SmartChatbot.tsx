@@ -32,8 +32,10 @@ export const SmartChatbot = () => {
         try {
             const res = await chatbotAPI.sendMessage(input, "english");
             setMessages(prev => [...prev, { role: "assistant", content: res.data.response }]);
-        } catch (error) {
-            setMessages(prev => [...prev, { role: "assistant", content: "I encountered an error. Please try again." }]);
+        } catch (error: any) {
+            console.error('Chatbot error:', error);
+            const errorMsg = error.message || "I encountered an error. Please try again.";
+            setMessages(prev => [...prev, { role: "assistant", content: errorMsg }]);
         } finally {
             setLoading(false);
         }

@@ -12,7 +12,17 @@ const messageSchema = Joi.object({
   context: Joi.string().optional()
 });
 
-// All routes require authentication
+// All routes require authentication (except test)
+router.post('/test', async (req, res) => {
+  try {
+    const { message } = req.body;
+    const response = await geminiService.generateFarmingAdvice(message || "Hello");
+    res.json({ success: true, response });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 router.use(protect);
 
 // Mock responses for fallback
@@ -44,8 +54,10 @@ router.post('/message', async (req, res) => {
     const { message, language = 'english' } = value;
 
     try {
+      console.log(`Processing chatbot message: "${message}" in ${language}`);
       // Use Gemini for response generation
       const response = await geminiService.generateFarmingAdvice(message, language);
+      console.log('Gemini response generated successfully');
 
       res.json({
         success: true,
@@ -53,7 +65,7 @@ router.post('/message', async (req, res) => {
           response,
           language,
           timestamp: new Date(),
-          model: 'Gemini-powered'
+          model: process.env.ENABLE_MOCK_GEMINI === 'true' ? 'Mock' : 'Gemini-powered'
         }
       });
     } catch (geminiError) {
