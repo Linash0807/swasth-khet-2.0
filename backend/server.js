@@ -20,6 +20,15 @@ const contactRoutes = require('./routes/contact');
 
 const app = express();
 
+// DEBUG: Log all requests in production to find the missing login body
+app.use((req, res, next) => {
+  res.setHeader('X-Debug-Backend', 'Active');
+  if (req.path.startsWith('/api')) {
+    console.log(`[DEBUG_API] ${req.method} ${req.path} - Origin: ${req.get('origin')}`);
+  }
+  next();
+});
+
 // Ensure uploads directory exists
 const uploadDir = process.env.UPLOAD_PATH || 'uploads/';
 if (!fs.existsSync(uploadDir)) {

@@ -31,6 +31,12 @@ class ApiClient {
     const response = await fetch(url, config);
 
     console.log(`[API] Response from ${url}: Status ${response.status} ${response.statusText}`);
+
+    // Log headers to check for X-Debug-Backend
+    const headerObj: any = {};
+    response.headers.forEach((val, key) => { headerObj[key] = val; });
+    console.log(`[API] Headers:`, JSON.stringify(headerObj, null, 2));
+
     const contentType = response.headers.get('content-type');
     console.log(`[API] Content-Type: ${contentType}`);
 
