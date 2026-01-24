@@ -61,23 +61,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loadUser();
   }, []);
 
+  const extractAuthData = (response: any) => {
+    let user = null;
+    let token = null;
+
+    if (!response) return { user: null, token: null };
+
+    // Case 1: Direct properties (response.user, response.token)
+    if (response.user) user = response.user;
+    if (response.token) token = response.token;
+
+    // Case 2: Within 'data' property (standard API pattern)
+    if (response.data) {
+      if (response.data.user) user = response.data.user;
+      if (response.data.token) token = response.data.token;
+
+      // Case 3: Nested twice (some wrappers or response envelopes)
+      if (response.data.data) {
+        if (response.data.data.user) user = response.data.data.user;
+        if (response.data.data.token) token = response.data.data.token;
+      }
+    }
+
+    // Fallback: If the object itself looks like a user object
+    if (!user && response.email) {
+      user = response;
+    }
+
+    return { user, token };
+  };
+
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
       console.log("[AuthContext] Attempting login for:", email);
       const response = await authAPI.login({ email, password });
-      console.log("[AuthContext] Raw login response:", response);
 
-      // Handle various response formats: 
-      // 1. { data: { user, token } }
-      // 2. { user, token }
-      // 3. { success: true, user, token }
-      const data = (response.data || response) as any;
-      const userData = data.user || (data.email ? data : null);
-      const userToken = data.token || (response as any).token;
+      // Diagnostic logging to see the ACTUAL shape in the console
+      console.log("[AuthContext] Login response (detailed):", JSON.stringify(response, null, 2));
+
+      const { user: userData, token: userToken } = extractAuthData(response);
 
       if (!userData || !userToken) {
-        console.error("[AuthContext] Incomplete response:", { userData: !!userData, userToken: !!userToken });
+        console.error("[AuthContext] Extraction failed. Response keys:", Object.keys(response || {}));
         throw new Error("Invalid response from server");
       }
 
@@ -86,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(userToken);
       localStorage.setItem('token', userToken);
     } catch (error: any) {
-      console.error("[AuthContext] Login error:", error.message);
+      console.error("[AuthContext] Login error:", error.message || error);
       throw error;
     } finally {
       setLoading(false);
@@ -98,11 +124,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       console.log("[AuthContext] Attempting registration for:", email);
       const response = await authAPI.register({ name, email, password });
-      console.log("[AuthContext] Raw register response:", response);
 
-      const data = (response.data || response) as any;
-      const userData = data.user || (data.email ? data : null);
-      const userToken = data.token || (response as any).token;
+      console.log("[AuthContext] Register response (detailed):", JSON.stringify(response, null, 2));
+
+      const { user: userData, token: userToken } = extractAuthData(response);
 
       if (!userData || !userToken) {
         throw new Error("Invalid response from server");
@@ -113,7 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(userToken);
       localStorage.setItem('token', userToken);
     } catch (error: any) {
-      console.error("[AuthContext] Register error:", error.message);
+      console.error("[AuthContext] Register error:", error.message || error);
       throw error;
     } finally {
       setLoading(false);
