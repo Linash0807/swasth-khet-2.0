@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Sprout, Menu } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
