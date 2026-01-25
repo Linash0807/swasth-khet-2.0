@@ -80,27 +80,10 @@ router.post('/analyze', uploadSingle, handleUploadError, async (req, res) => {
       });
     } catch (geminiError) {
       console.error('Gemini analysis failed:', geminiError.message);
-
-      let statusCode = 500;
-      let message = 'AI analysis failed';
-      let details = geminiError.message;
-
-      if (geminiError.message.includes('429') || geminiError.message.includes('quota')) {
-        statusCode = 429;
-        message = 'AI Quota exceeded. Please try again later or enable Demo Mode.';
-      } else if (geminiError.message.includes('401') || geminiError.message.includes('API_KEY_INVALID')) {
-        statusCode = 401;
-        message = 'Invalid AI API Key. Please check server configuration.';
-      } else if (geminiError.message.includes('Candidate was blocked')) {
-        statusCode = 422;
-        message = 'The image content was blocked by AI safety filters. Please upload a clear crop image.';
-      }
-
-      res.status(statusCode).json({
+      res.status(geminiError.status || 500).json({
         success: false,
-        message: message,
-        error: geminiError.message,
-        details: details
+        message: geminiError.message || 'AI analysis failed',
+        error: geminiError.message
       });
     }
   } catch (error) {

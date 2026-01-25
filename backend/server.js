@@ -36,11 +36,28 @@ if (!fs.existsSync(uploadDir)) {
   console.log('Created uploads directory');
 }
 
-// Serve static files from uploads directory
-app.use('/uploads', express.static(path.join(__dirname, uploadDir)));
+// Serve static files from uploads directory - use absolute path
+const absoluteUploadPath = path.resolve(__dirname, uploadDir);
+console.log(`[SERVE] Serving uploads from: ${absoluteUploadPath}`);
+app.use('/uploads', express.static(absoluteUploadPath, {
+  setHeaders: (res) => {
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+  }
+}));
 
 // Security middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "img-src": ["'self'", "data:", "blob:", "https:"],
+      "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      "connect-src": ["'self'", "https:", "http://localhost:5000", "http://127.0.0.1:5000"],
+      "frame-src": ["'self'", "https://www.google.com"]
+    },
+  },
+  crossOriginEmbedderPolicy: false
+}));
 
 // Rate limiting
 const limiter = rateLimit({
@@ -55,6 +72,8 @@ app.use(limiter);
 const allowedOrigins = [
   'https://swasth-khet-2-0.onrender.com',
   'https://swasth-khet-2-0-1.onrender.com',
+  'http://localhost:5000',
+  'http://127.0.0.1:5000',
   'http://localhost:3000',
   'http://localhost:8080',
   'http://localhost:5173'
@@ -101,9 +120,9 @@ app.get('/api/health', (req, res) => {
 });
 
 // Serve static files from the React frontend app
-const staticPath = path.join(__dirname, '../frontend/dist');
-console.log(`[SERVE] Looking for static files in: ${staticPath}`);
-console.log(`[SERVE] staticPath exists: ${fs.existsSync(staticPath)}`);
+const staticPath = path.resolve(__dirname, '../frontend/dist');
+console.log(`[SERVE] Serving static files from: ${staticPath}`);
+console.log(`[SERVE] Directory exists: ${fs.existsSync(staticPath)}`);
 
 app.use(express.static(staticPath));
 
@@ -115,20 +134,33 @@ app.get('*', (req, res, next) => {
 
   // Otherwise serve the React app
   const indexPath = path.join(staticPath, 'index.html');
-  console.log(`[SERVE] Requested: ${req.path}, checking for: ${indexPath}`);
+
+  // IMPORTANT: Don't serve index.html for missing assets (files with extensions)
+  // This prevents the "MIME type mismatch" error
+  const isAsset = /\.(js|css|png|jpg|jpeg|gif|ico|json|svg)$/.test(req.path);
 
   if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else if (req.path === '/') {
-    res.json({
-      success: true,
-      message: 'Welcome to Swasth Khet API',
-      status: `Running (${process.env.NODE_ENV || 'development'})`,
-      hasBuild: fs.existsSync(staticPath),
-      checkedPath: staticPath,
-      dirName: __dirname
+    if (isAsset) {
+      return next(); // Let it hit the 404 handler
+    }
+
+    res.sendFile(indexPath, (err) => {
+      if (err) {
+        next(err);
+      }
     });
   } else {
+    // If we're at the root and no build exists, show a more helpful dev message
+    if (req.path === '/' || !isAsset) {
+      return res.json({
+        success: true,
+        message: 'Swasth Khet API is running',
+        frontendStatus: 'Frontend build not found',
+        instructions: 'Please run "npm run build" in the frontend directory to serve the UI.',
+        env: process.env.NODE_ENV || 'development',
+        checkedPath: staticPath
+      });
+    }
     next();
   }
 });
@@ -153,6 +185,10 @@ app.use((err, req, res, next) => {
     error: process.env.NODE_ENV === 'development' ? err.message : {}
   });
 });
+
+app.get('/', (req, res) => {
+  app.send("Welcome to Swasth Khet API");
+})
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

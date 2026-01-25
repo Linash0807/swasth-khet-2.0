@@ -3,233 +3,203 @@ const fs = require('fs');
 const path = require('path');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const DEFAULT_MODEL = 'gemini-flash-latest';
 
 class GeminiService {
+  /**
+   * Analyzes an image of a crop to detect diseases
+   * @param {string} imagePath - Path to the image file
+   * @returns {Object} - Analysis result in JSON format
+   */
   async analyzeCropDisease(imagePath) {
     if (process.env.ENABLE_MOCK_GEMINI === 'true') {
-      console.log('Using Mock Gemini for disease analysis');
-      return {
-        disease: "Leaf Blight (Demo)",
-        confidence: 95,
-        severity: "medium",
-        affectedParts: ["leaves"],
-        symptoms: ["Yellow spots", "Brown edges"],
-        treatment: {
-          immediate: ["Remove infected leaves"],
-          chemical: ["Copper-based fungicide"],
-          organic: ["Neem oil"],
-          preventive: ["Crop rotation"]
-        },
-        harvestingRecommendation: "safe",
-        estimatedRecoveryDays: 10,
-        affectedYield: "5%",
-        notes: "This is a demo result since MOCK_GEMINI is enabled."
-      };
-    }
-
-    const modelsToTry = [
-      'gemini-2.0-flash',
-      'gemini-1.5-flash',
-      'gemini-pro'
-    ];
-
-    let lastError = null;
-
-    for (const modelName of modelsToTry) {
-      try {
-        console.log(`Attempting disease analysis with model: ${modelName}`);
-        const model = genAI.getGenerativeModel({ model: modelName });
-
-        // Read image and convert to base64
-        const imageBuffer = fs.readFileSync(imagePath);
-        const base64Image = imageBuffer.toString('base64');
-        const imageExtension = path.extname(imagePath).slice(1).toLowerCase();
-
-        const mimeTypes = {
-          'jpg': 'image/jpeg',
-          'jpeg': 'image/jpeg',
-          'png': 'image/png',
-          'gif': 'image/gif',
-          'webp': 'image/webp'
-        };
-
-        const mimeType = mimeTypes[imageExtension] || 'image/jpeg';
-
-        const prompt = `You are an expert agricultural pathologist. Analyze this crop image and provide a detailed disease diagnosis.
- 
-Respond in JSON format with the following structure:
-{
-  "disease": "name of disease",
-  "confidence": 85,
-  "severity": "low|medium|high",
-  "affectedParts": ["list", "of", "affected", "plant", "parts"],
-  "symptoms": ["symptom1", "symptom2"],
-  "treatment": {
-    "immediate": ["action1", "action2"],
-    "chemical": ["fungicide/pesticide recommendations"],
-    "organic": ["organic alternatives"],
-    "preventive": ["prevention measures"]
-  },
-  "harvestingRecommendation": "safe/delay/risky",
-  "estimatedRecoveryDays": 7,
-  "affectedYield": "5-10%",
-  "notes": "additional important information"
-}
-
-If the image doesn't show a crop or plant, respond with:
-{
-  "error": "true",
-  "message": "description of why analysis failed"
-}`;
-
-        const response = await model.generateContent([
-          {
-            inlineData: {
-              data: base64Image,
-              mimeType: mimeType
-            }
-          },
-          prompt
-        ]);
-
-        const text = response.response.text();
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-
-        if (!jsonMatch) {
-          throw new Error('Invalid response format from Gemini');
-        }
-
-        const result = JSON.parse(jsonMatch[0]);
-        console.log(`Success with model: ${modelName}`);
-        return result;
-      } catch (error) {
-        console.warn(`Model ${modelName} failed:`, error.message);
-        lastError = error;
-
-        // If it's a quota or auth error, don't bother with other models
-        if (error.message.includes('429') || error.message.includes('quota') || error.message.includes('401') || error.message.includes('API_KEY_INVALID')) {
-          break;
-        }
-
-        // Continue to next model if this one fails (especially on 404 or support errors)
-        if (error.message.includes('404') || error.message.includes('not supported') || error.message.includes('not found')) {
-          continue;
-        }
-      }
-    }
-
-    throw lastError || new Error(`All Gemini models failed.`);
-  }
-
-  async generateFarmingAdvice(query, language = 'english') {
-    console.log(`generateFarmingAdvice called. MOCK_GEMINI: ${process.env.ENABLE_MOCK_GEMINI}`);
-    if (process.env.ENABLE_MOCK_GEMINI === 'true') {
-      console.log('Returning mock farming advice');
-      return "This is a demo response for farming advice. Ensure proper irrigation and soil nutrition.";
+      console.log('[GEMINI] Using Mock for disease analysis');
+      return this._getMockDiseaseResult();
     }
 
     try {
-      console.log('Fetching real Gemini advice...');
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+      console.log(`[GEMINI] Analyzing crop disease with model: ${DEFAULT_MODEL}`);
+      const model = genAI.getGenerativeModel({ model: DEFAULT_MODEL });
 
-      const systemPrompt = `You are an expert agricultural advisor helping Indian farmers. Provide practical, actionable farming advice in ${language} language. Be concise and farmer-friendly. Avoid technical jargon.`;
+      const imageBuffer = fs.readFileSync(imagePath);
+      const base64Image = imageBuffer.toString('base64');
+      const imageExtension = path.extname(imagePath).slice(1).toLowerCase();
+      const mimeType = this._getMimeType(imageExtension);
+
+      const prompt = `You are an expert agricultural pathologist. Analyze this crop image and provide a detailed disease diagnosis. 
+      If the image is not related to crops or plants, return a JSON with an "error" field set to true and a helpful message.
+      
+      Structure your response as a valid JSON object:
+      {
+        "disease": "Specific name of the disease or 'Healthy'",
+        "confidence": 0-100,
+        "severity": "low|medium|high|none",
+        "affectedParts": ["leaves", "stems", etc],
+        "symptoms": ["list of observable symptoms"],
+        "treatment": {
+          "immediate": ["actions to take now"],
+          "chemical": ["recommended fungicides/pesticides if applicable"],
+          "organic": ["natural remedies"],
+          "preventive": ["how to prevent in future"]
+        },
+        "harvestingRecommendation": "safe|risky|wait",
+        "estimatedRecoveryDays": number,
+        "affectedYield": "percentage estimate",
+        "notes": "additional expert observations"
+      }`;
 
       const response = await model.generateContent([
-        `${systemPrompt}\n\nFarmer's question: ${query}`
+        { inlineData: { data: base64Image, mimeType: mimeType } },
+        prompt
       ]);
 
+      const text = response.response.text();
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+
+      if (!jsonMatch) {
+        throw new Error('AI failed to generate a valid JSON response structure.');
+      }
+
+      return JSON.parse(jsonMatch[0]);
+    } catch (error) {
+      console.error(`[GEMINI_ERROR] Disease analysis failed:`, error.message);
+      throw this._handleError(error);
+    }
+  }
+
+  /**
+   * Generates farming advice based on a query
+   * @param {string} query - The user's question
+   * @param {string} language - Preferred language
+   * @returns {string} - AI generated advice
+   */
+  async generateFarmingAdvice(query, language = 'english') {
+    if (process.env.ENABLE_MOCK_GEMINI === 'true') {
+      return "Demo Response: Ensure proper irrigation and soil nutrition.";
+    }
+
+    try {
+      console.log(`[GEMINI] Generating farming advice with model: ${DEFAULT_MODEL}`);
+      const model = genAI.getGenerativeModel({ model: DEFAULT_MODEL });
+
+      const systemPrompt = `You are an expert agricultural advisor providing practical, sustainable, and effective farming advice. 
+      Respond concisely in ${language}. If you don't know the answer, suggest consulting a local agricultural officer.`;
+
+      const response = await model.generateContent([`${systemPrompt}\n\nQuestion: ${query}`]);
       return response.response.text();
     } catch (error) {
-      console.error('Gemini Advice Generation Error:', error);
-      throw error;
+      console.error(`[GEMINI_ERROR] Chat advice failed:`, error.message);
+      throw this._handleError(error);
     }
   }
 
+  /**
+   * Predicts crop yield based on provided data
+   */
   async predictYield(cropData) {
-    if (process.env.ENABLE_MOCK_GEMINI === 'true') {
-      return {
-        estimatedYield: "50 quintals",
-        yieldRange: "45-55",
-        confidence: "90%",
-        factors: ["Good rainfall", "Timely sowing"],
-        recommendations: ["Maintain nitrogen levels"]
-      };
-    }
-
     try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
-      const prompt = `As an agricultural AI, analyze this crop data and predict yield:
-${JSON.stringify(cropData, null, 2)}
-
-Provide a JSON response with:
-{
-  "estimatedYield": "quantity in quintal/ton",
-  "yieldRange": "minimum-maximum",
-  "confidence": "percentage",
-  "factors": ["positive_factors", "risk_factors"],
-  "recommendations": ["optimization_suggestions"]
-}`;
+      const model = genAI.getGenerativeModel({ model: DEFAULT_MODEL });
+      const prompt = `As an agricultural AI, analyze this crop data and predict yield in JSON format:
+      ${JSON.stringify(cropData, null, 2)}
+      
+      {
+        "estimatedYield": "quantity",
+        "yieldRange": "min-max",
+        "confidence": "percentage",
+        "factors": ["positive", "risks"],
+        "recommendations": ["suggestions"]
+      }`;
 
       const response = await model.generateContent(prompt);
       const text = response.response.text();
-
       const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('Invalid response format');
-      }
 
+      if (!jsonMatch) throw new Error('Invalid response format');
       return JSON.parse(jsonMatch[0]);
     } catch (error) {
-      console.error('Gemini Yield Prediction Error:', error);
-      throw error;
+      console.error('[GEMINI_ERROR] Yield prediction failed:', error.message);
+      throw this._handleError(error);
     }
   }
 
+  /**
+   * Forecasts disease risk based on weather and location
+   */
   async forecastDisease(locationData, weatherData) {
-    if (process.env.ENABLE_MOCK_GEMINI === 'true') {
-      return {
-        riskLevel: "low",
-        likelyDiseases: [],
-        recommendations: ["Keep monitoring"],
-        monitoringAdvice: "Check for pests weekly"
-      };
-    }
-
     try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
-      const prompt = `As an agricultural disease forecasting AI, analyze this data and predict disease risks:
-Location: ${JSON.stringify(locationData)}
-Current Weather: ${JSON.stringify(weatherData)}
-
-Provide a JSON response with:
-{
-  "riskLevel": "low|medium|high",
-  "likelyDiseases": [
-    {
-      "name": "disease_name",
-      "probability": "percentage",
-      "riskFactors": ["factor1", "factor2"]
-    }
-  ],
-  "recommendations": ["preventive_measures"],
-  "monitoringAdvice": "what to watch for"
-}`;
+      const model = genAI.getGenerativeModel({ model: DEFAULT_MODEL });
+      const prompt = `Analyze data and forecast disease risks in JSON format:
+      Location: ${JSON.stringify(locationData)}
+      Weather: ${JSON.stringify(weatherData)}
+      
+      {
+        "riskLevel": "low|medium|high",
+        "likelyDiseases": [{"name": "...", "probability": "...", "riskFactors": []}],
+        "recommendations": [],
+        "monitoringAdvice": ""
+      }`;
 
       const response = await model.generateContent(prompt);
       const text = response.response.text();
-
       const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('Invalid response format');
-      }
 
+      if (!jsonMatch) throw new Error('Invalid response format');
       return JSON.parse(jsonMatch[0]);
     } catch (error) {
-      console.error('Gemini Disease Forecast Error:', error);
-      throw error;
+      console.error('[GEMINI_ERROR] Disease forecast failed:', error.message);
+      throw this._handleError(error);
     }
+  }
+
+  // Helper Methods
+  _getMimeType(extension) {
+    const types = {
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'webp': 'image/webp'
+    };
+    return types[extension] || 'image/jpeg';
+  }
+
+  _handleError(error) {
+    let message = error.message;
+    let status = 500;
+
+    if (message.includes('429') || message.includes('quota')) {
+      message = "Quota exceeded for the AI service. Please try again in 60 seconds.";
+      status = 429;
+    } else if (message.includes('401') || message.includes('API_KEY_INVALID')) {
+      message = "AI service authentication failed. Please check the API key.";
+      status = 401;
+    } else if (message.includes('Candidate was blocked')) {
+      message = "The image or request was flagged by safety filters. Please try a different approach.";
+      status = 422;
+    }
+
+    const refinedError = new Error(message);
+    refinedError.status = status;
+    return refinedError;
+  }
+
+  _getMockDiseaseResult() {
+    return {
+      disease: "Leaf Blight (Demo)",
+      confidence: 95,
+      severity: "medium",
+      affectedParts: ["leaves"],
+      symptoms: ["Yellow spots", "Brown edges"],
+      treatment: {
+        immediate: ["Remove infected leaves"],
+        chemical: ["Copper-based fungicide"],
+        organic: ["Neem oil"],
+        preventive: ["Crop rotation"]
+      },
+      harvestingRecommendation: "safe",
+      estimatedRecoveryDays: 10,
+      affectedYield: "5%",
+      notes: "This is a demo result since MOCK_GEMINI is enabled."
+    };
   }
 }
 

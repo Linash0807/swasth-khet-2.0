@@ -41,7 +41,11 @@ export default function DiseaseDetection() {
     try {
       setIsAnalyzing(true);
       const response = await diseaseAPI.analyzeImage(selectedImage);
-      setResult(response.data.report || null);
+      // Combine report and imageUrl into the result state
+      setResult({
+        ...response.data.report,
+        imageUrl: response.data.imageUrl
+      });
       toast({
         title: "Analysis complete",
         description: "AI has successfully analyzed the crop health",
@@ -166,8 +170,8 @@ export default function DiseaseDetection() {
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                   <Card className="border-t-4 border-t-primary shadow-lg">
                     <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <div>
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="flex-1">
                           <CardTitle className="text-2xl">{result.disease}</CardTitle>
                           <CardDescription className="flex items-center gap-2 mt-1">
                             <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${result.severity === 'high' ? 'bg-destructive/10 text-destructive' :
@@ -181,7 +185,16 @@ export default function DiseaseDetection() {
                             </span>
                           </CardDescription>
                         </div>
-                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                        {result.imageUrl && (
+                          <div className="w-24 h-24 rounded-lg overflow-hidden border border-border shadow-sm shrink-0">
+                            <img
+                              src={result.imageUrl.startsWith('http') ? result.imageUrl : `${window.location.origin}${result.imageUrl}`}
+                              alt="Analyzed crop"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        )}
+                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                           <CheckCircle2 className="h-6 w-6 text-primary" />
                         </div>
                       </div>

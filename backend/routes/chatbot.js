@@ -55,9 +55,7 @@ router.post('/message', async (req, res) => {
 
     try {
       console.log(`Processing chatbot message: "${message}" in ${language}`);
-      // Use Gemini for response generation
       const response = await geminiService.generateFarmingAdvice(message, language);
-      console.log('Gemini response generated successfully');
 
       res.json({
         success: true,
@@ -69,19 +67,21 @@ router.post('/message', async (req, res) => {
         }
       });
     } catch (geminiError) {
-      console.warn('Gemini response failed:', geminiError.message);
+      console.error('Gemini response failed:', geminiError.message);
 
-      // Fallback response
+      // Still provide a friendly fallback message if AI fails
+      const friendlyMessage = "I'm sorry, I'm having trouble providing advice right now. Please try again in a moment.";
       const mockResponse = MOCK_RESPONSES[language]?.default || MOCK_RESPONSES.english.default;
 
-      res.json({
-        success: true,
+      res.status(geminiError.status || 500).json({
+        success: false,
+        message: geminiError.message || friendlyMessage,
         data: {
           response: mockResponse,
           language,
           timestamp: new Date(),
           model: 'Fallback',
-          warning: 'Using fallback response. Gemini API unavailable.'
+          warning: geminiError.message
         }
       });
     }
