@@ -70,6 +70,7 @@ app.use(limiter);
 // CORS configuration
 // CORS configuration - Allow production origin and localhost
 const allowedOrigins = [
+  process.env.FRONTEND_URL,
   'https://swasth-khet-2-0.onrender.com',
   'https://swasth-khet-2-0-1.onrender.com',
   'http://localhost:5000',
@@ -119,51 +120,17 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Swasth Khet API is running' });
 });
 
-// Serve static files from the React frontend app
-const staticPath = path.resolve(__dirname, '../frontend/dist');
-console.log(`[SERVE] Serving static files from: ${staticPath}`);
-console.log(`[SERVE] Directory exists: ${fs.existsSync(staticPath)}`);
-
-app.use(express.static(staticPath));
-
-app.get('*', (req, res, next) => {
-  // If it's an API route that reached here, it's a true API 404
-  if (req.path.startsWith('/api')) {
-    return next();
-  }
-
-  // Otherwise serve the React app
-  const indexPath = path.join(staticPath, 'index.html');
-
-  // IMPORTANT: Don't serve index.html for missing assets (files with extensions)
-  // This prevents the "MIME type mismatch" error
-  const isAsset = /\.(js|css|png|jpg|jpeg|gif|ico|json|svg)$/.test(req.path);
-
-  if (fs.existsSync(indexPath)) {
-    if (isAsset) {
-      return next(); // Let it hit the 404 handler
-    }
-
-    res.sendFile(indexPath, (err) => {
-      if (err) {
-        next(err);
-      }
+// Serve static files (Optional - only if you want to keep it as backup)
+if (process.env.SERVE_FRONTEND === 'true') {
+  const staticPath = path.resolve(__dirname, '../frontend/dist');
+  if (fs.existsSync(staticPath)) {
+    app.use(express.static(staticPath));
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api')) return next();
+      res.sendFile(path.join(staticPath, 'index.html'));
     });
-  } else {
-    // If we're at the root and no build exists, show a more helpful dev message
-    if (req.path === '/' || !isAsset) {
-      return res.json({
-        success: true,
-        message: 'Swasth Khet API is running',
-        frontendStatus: 'Frontend build not found',
-        instructions: 'Please run "npm run build" in the frontend directory to serve the UI.',
-        env: process.env.NODE_ENV || 'development',
-        checkedPath: staticPath
-      });
-    }
-    next();
   }
-});
+}
 
 // Global 404 handler
 app.use((req, res) => {

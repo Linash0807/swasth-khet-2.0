@@ -1,11 +1,20 @@
 services:
-  # Swasth Khet - Unified Web Service
+  # Swasth Khet - Backend API
   - type: web
-    name: swasth-khet
+    name: swasth-khet-backend
     runtime: node
-    buildCommand: cd frontend && npm install && npm run build && cd ../backend && npm install
+    buildCommand: cd backend && npm install
     startCommand: cd backend && npm start
     envVars:
       - key: NODE_ENV
         value: production
       - fromGroup: swasth-khet-common
+
+  # Swasth Khet - Frontend Static Site
+  - type: static
+    name: swasth-khet-frontend
+    buildCommand: cd frontend && npm install && npm run build
+    publishPath: frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://swasth-khet-backend.onrender.com/api # User needs to update this once backend is deployed
