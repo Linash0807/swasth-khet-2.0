@@ -133,7 +133,7 @@ if (process.env.SERVE_FRONTEND === 'true') {
 }
 
 app.get('/', (req, res) => {
-  res.json({ success: true, message: "Welcome to Swasth Khet API" });
+  res.json({ success: true, message: "Welcome to Swasth Khet API v2 (Decoupled)" });
 });
 
 // Global 404 handler

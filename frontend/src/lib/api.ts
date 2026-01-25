@@ -8,6 +8,7 @@ const getApiUrl = () => {
 };
 
 const API_BASE_URL = getApiUrl();
+console.log(`[API] Base URL: ${API_BASE_URL}`);
 
 class ApiClient {
   private baseURL: string;
