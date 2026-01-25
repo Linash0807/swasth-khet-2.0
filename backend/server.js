@@ -132,14 +132,17 @@ if (process.env.SERVE_FRONTEND === 'true') {
   }
 }
 
+app.get('/', (req, res) => {
+  res.json({ success: true, message: "Welcome to Swasth Khet API" });
+});
+
 // Global 404 handler
 app.use((req, res) => {
   res.status(404).json({
     success: false,
     message: 'Route not found',
     path: req.originalUrl,
-    mode: process.env.NODE_ENV,
-    hasStatic: fs.existsSync(path.join(__dirname, '../frontend/dist'))
+    mode: process.env.NODE_ENV
   });
 });
 
@@ -152,10 +155,6 @@ app.use((err, req, res, next) => {
     error: process.env.NODE_ENV === 'development' ? err.message : {}
   });
 });
-
-app.get('/', (req, res) => {
-  app.send("Welcome to Swasth Khet API");
-})
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
